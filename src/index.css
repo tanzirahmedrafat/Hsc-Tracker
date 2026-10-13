@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-bengali: 'Hind Siliguri', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-bengali);
+    background-color: #f8f9fa;
+    color: #0f172a;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  html.dark body {
+    background-color: #090d16;
+    color: #f1f5f9;
+  }
+}
+
+/* Comprehensive Dark Mode Palettes for HSC Tracker */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #090d16;
+}
+
+/* Cards & containers in dark mode */
+html.dark .bg-white {
+  background-color: #111827;
+  color: #f8fafc;
+}
+
+html.dark .bg-white\/95 {
+  background-color: rgba(17, 24, 39, 0.95);
+}
+
+html.dark .bg-white\/90 {
+  background-color: rgba(17, 24, 39, 0.9);
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-stone-900 {
+  color: #f8fafc;
+}
+
+html.dark .text-stone-700,
+html.dark .text-stone-600 {
+  color: #cbd5e1;
+}
+
+html.dark .text-stone-500,
+html.dark .text-stone-400 {
+  color: #94a3b8;
+}
+
+/* Borders in dark mode */
+html.dark .border-stone-200,
+html.dark .border-stone-200\/80,
+html.dark .border-stone-200\/90,
+html.dark .border-stone-200\/60,
+html.dark .border-stone-100,
+html.dark .border-stone-100\/90 {
+  border-color: #1f293d;
+}
+
+/* Inner subtle backgrounds */
+html.dark .bg-stone-50,
+html.dark .bg-stone-50\/40,
+html.dark .bg-stone-50\/50,
+html.dark .bg-stone-50\/60,
+html.dark .bg-stone-100 {
+  background-color: #162032;
+}
+
+html.dark .bg-stone-100\/80,
+html.dark .bg-stone-200 {
+  background-color: #1e293b;
+}
+
+html.dark .bg-slate-950,
+html.dark .bg-slate-900 {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+/* Dark mode inputs and textareas */
+html.dark input[type="text"],
+html.dark input[type="time"],
+html.dark input[type="number"],
+html.dark select,
+html.dark textarea {
+  background-color: #162032;
+  color: #f8fafc;
+  border-color: #334155;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* Bottom Nav bar in dark mode */
+html.dark nav {
+  background-color: rgba(15, 23, 42, 0.95);
+  border-color: #1e293b;
+}
+
+/* Hide scrollbar for clean horizontal tab bars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding for mobile bottom bar */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
