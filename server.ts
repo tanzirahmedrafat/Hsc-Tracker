@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { generateAndSendApk } from './src/utils/apkGenerator';
 
 dotenv.config();
 
@@ -161,6 +162,18 @@ app.post('/api/ai/plan', async (req, res) => {
   } catch (error: any) {
     console.error('Study Plan Generation Error:', error);
     res.status(500).json({ error: 'পরিকল্পনা তৈরিতে সমস্যা হয়েছে।' });
+  }
+});
+
+// Full APK Package Download Endpoint
+app.get('/api/download/apk', async (_req, res) => {
+  try {
+    await generateAndSendApk(res, __dirname);
+  } catch (err: any) {
+    console.error('Failed to generate APK:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'APK ফাইল তৈরিতে সমস্যা হয়েছে।' });
+    }
   }
 });
 

@@ -261,14 +261,24 @@ export const ProfileModal: React.FC = () => {
             <p className="text-[11px] text-stone-600 leading-relaxed">
               এই অ্যাপটি Website 2 APK, Capacitor বা WebView দিয়ে সরাসরি APK ফাইলে রূপান্তরযোগ্য। ব্যাক বাটন নেভিগেশন, স্ক্রিন ওয়েক-লক, স্টাডি টাইমার ও অ্যালার্ম অফলাইনেও সম্পূর্ণ কার্যকর থাকবে।
             </p>
-            <button
-              type="button"
-              onClick={() => setIsApkGuideOpen(true)}
-              className="w-full py-2 px-3 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-97 shadow-2xs"
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>সহজে APK তৈরির নিয়মাবলী দেখুন (ধাপসমূহ)</span>
-            </button>
+            <div className="flex items-center gap-2 pt-1">
+              <a
+                href="/api/download/apk"
+                download="HSC_Tracker.apk"
+                className="flex-1 py-2 px-3 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-97 shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>HSC_Tracker.apk ডাউনলোড</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setIsApkGuideOpen(true)}
+                className="py-2 px-3 rounded-xl bg-white hover:bg-stone-100 text-stone-800 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-97 border border-stone-200 shadow-2xs"
+              >
+                <span>নিয়মাবলী</span>
+              </button>
+            </div>
           </div>
 
           {/* Submit */}

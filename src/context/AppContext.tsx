@@ -20,6 +20,11 @@ import {
   DEFAULT_STUDY_SESSIONS,
 } from '../data/defaultData';
 import { startRoutineAlarm, stopRoutineAlarm } from '../utils/audioAlarm';
+import {
+  triggerBackgroundAlarm,
+  scheduleTestBackgroundAlarm,
+  requestNotificationPermission,
+} from '../utils/backgroundAlarmManager';
 import { parseStartTime } from '../utils/bengali';
 
 export type NavTab = 'home' | 'routine' | 'tracker' | 'ai-buddy';
@@ -73,6 +78,8 @@ interface AppContextType {
   importAiPlanSlots: (slots: Array<{ day: DayOfWeek; time: string; subject: string; activity: string; duration: number }>) => void;
   toggleRoutineAlarm: (id: string) => void;
   testRoutineAlarm: (routine?: RoutineItem) => void;
+  scheduleTestBackgroundAlarm: (delaySeconds: number, routine?: RoutineItem) => Promise<boolean>;
+  requestNotificationPermission: () => Promise<boolean>;
 
   // Routine Alarm Popup State
   activeAlarmRoutine: RoutineItem | null;
@@ -538,12 +545,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const testRoutineAlarm = (routine?: RoutineItem) => {
     const target = routine || routines[0];
     if (target) {
-      startRoutineAlarm();
       setActiveAlarmRoutine(target);
+      const matchedSub = subjects.find((s) => s.id === target.subjectId);
+      triggerBackgroundAlarm(target, matchedSub?.name || 'বিষয়');
     }
   };
 
-  // Routine Alarm Background Time Checker (runs every 10 seconds)
+  const scheduleTestBackgroundAlarmHandler = async (delaySeconds: number, routine?: RoutineItem): Promise<boolean> => {
+    const target = routine || routines[0];
+    if (!target) return false;
+    const matchedSub = subjects.find((s) => s.id === target.subjectId);
+    return await scheduleTestBackgroundAlarm(delaySeconds, target, matchedSub?.name || 'বিষয়');
+  };
+
+  // Routine Alarm Background Time Checker (runs every 5 seconds + Web Worker + lockscreen catchup)
   useEffect(() => {
     const checkAlarmTime = () => {
       const now = new Date();
@@ -591,26 +606,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const targetTotalMinutes = targetHour * 60 + targetMinute;
           const diff = nowTotalMinutes - targetTotalMinutes;
 
-          // Trigger if exactly on time (diff === 0) or within 2 minutes window if tab was inactive
-          if (diff >= 0 && diff <= 2) {
+          // Trigger if on time (diff === 0) or within 3 minutes window if phone was asleep/backgrounded
+          if (diff >= 0 && diff <= 3) {
             const triggerDayKey = `${r.id}_${todayDateStr}`;
             if (!triggeredAlarmsRef.current.has(triggerDayKey)) {
               triggeredAlarmsRef.current.add(triggerDayKey);
-              startRoutineAlarm();
               setActiveAlarmRoutine(r);
 
-              // Trigger native browser notification if permission granted
-              if (
-                typeof window !== 'undefined' &&
-                'Notification' in window &&
-                Notification.permission === 'granted'
-              ) {
-                const matchedSub = subjects.find((s) => s.id === r.subjectId);
-                new Notification(`🔔 পড়ার সময় হয়েছে: ${matchedSub?.name || 'বিষয়'}`, {
-                  body: `${r.activityType} • ${r.startTime} (${r.durationMinutes} মিনিট)`,
-                  icon: '/pwa-192x192.png',
-                });
-              }
+              const matchedSub = subjects.find((s) => s.id === r.subjectId);
+              triggerBackgroundAlarm(r, matchedSub?.name || 'বিষয়');
               break;
             }
           }
@@ -619,8 +623,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     checkAlarmTime();
-    const interval = setInterval(checkAlarmTime, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(checkAlarmTime, 5000);
+
+    // Dedicated Background Web Worker to keep checking when app is minimized
+    let worker: Worker | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'Worker' in window) {
+        worker = new Worker('/alarm-worker.js');
+        worker.onmessage = (e) => {
+          if (e.data === 'TICK') {
+            checkAlarmTime();
+          }
+        };
+        worker.postMessage('START');
+      }
+    } catch (e) {
+      console.warn('Worker initialization fallback:', e);
+    }
+
+    // Catch missed alarms immediately on phone screen unlock or tab focus
+    const handleVisibility = () => {
+      checkAlarmTime();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    // Listen for Service Worker notification click events
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'ALARM_NOTIFICATION_CLICKED') {
+        const found = routines.find((rt) => rt.id === event.data.routineId) || routines[0];
+        if (found) {
+          setActiveAlarmRoutine(found);
+        }
+      }
+    };
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (worker) {
+        worker.postMessage('STOP');
+        worker.terminate();
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      }
+    };
   }, [routines, subjects]);
 
   // Study Timer Logic with persistent background timestamp
@@ -877,6 +929,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         importAiPlanSlots,
         toggleRoutineAlarm,
         testRoutineAlarm,
+        scheduleTestBackgroundAlarm: scheduleTestBackgroundAlarmHandler,
+        requestNotificationPermission,
         activeAlarmRoutine,
         dismissAlarm,
         startStudyFromAlarm,

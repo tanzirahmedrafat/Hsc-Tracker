@@ -60,6 +60,28 @@ export const ApkGuideModal: React.FC<ApkGuideModalProps> = ({ isOpen, onClose })
           </button>
         </div>
 
+        {/* Direct APK Download Banner */}
+        <div className="p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-b border-emerald-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold">
+              <Download className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900">ফুল APK ফাইল (Direct Download)</div>
+              <div className="text-[10px] text-stone-500">HSC_Tracker.apk ব্যাকএন্ড থেকে জেনারেট করা</div>
+            </div>
+          </div>
+
+          <a
+            href="/api/download/apk"
+            download="HSC_Tracker.apk"
+            className="px-3.5 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>APK ডাউনলোড</span>
+          </a>
+        </div>
+
         {/* Method Switcher Tabs */}
         <div className="flex items-center p-1.5 bg-stone-100 border-b border-stone-200 text-xs font-bold">
           <button
