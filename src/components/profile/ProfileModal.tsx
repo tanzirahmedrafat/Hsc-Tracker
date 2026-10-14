@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useFirebaseAuth } from '../../firebase/FirebaseAuthProvider';
 import { PWAInstallButton } from '../common/PWAInstallButton';
 import { ApkGuideModal } from './ApkGuideModal';
 import { toBengaliNumber } from '../../utils/bengali';
@@ -29,6 +30,8 @@ export const ProfileModal: React.FC = () => {
     todayStudySeconds,
     theme,
     toggleTheme,
+    unlockedBadgeCount,
+    totalBadgeCount,
   } = useApp();
 
   const [name, setName] = useState(userProfile.name);
@@ -39,6 +42,8 @@ export const ProfileModal: React.FC = () => {
   const [notifications, setNotifications] = useState(userProfile.notificationsEnabled);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isApkGuideOpen, setIsApkGuideOpen] = useState(false);
+
+  const { currentUser, signInWithGoogle, signOutUser, isSyncing } = useFirebaseAuth();
 
   if (!isProfileOpen) return null;
 
@@ -109,18 +114,84 @@ export const ProfileModal: React.FC = () => {
           </button>
         </div>
 
+        {/* Google Cloud Account & Sync Card */}
+        {currentUser ? (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50 to-sky-50 border border-blue-200/80 flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {currentUser.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName || ''}
+                  className="w-10 h-10 rounded-full border border-blue-300 shadow-2xs"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center">
+                  {currentUser.displayName?.charAt(0) || 'G'}
+                </div>
+              )}
+              <div>
+                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>{currentUser.displayName || 'Google User'}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-sans bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                    {isSyncing ? 'সিঙ্ক হচ্ছে...' : 'Cloud Synced'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-500 font-mono truncate max-w-[180px]">
+                  {currentUser.email}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={signOutUser}
+              className="py-1.5 px-3 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 font-bold text-xs transition active:scale-95 shadow-2xs"
+            >
+              লগআউট
+            </button>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-base">
+                ☁️
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900">গুগল ক্লাউড ব্যাকআপ (Firebase)</div>
+                <div className="text-[11px] text-stone-500">লগইন করলে সব ডিভাইসে সিলেবাস ও স্ট্রিক সুরক্ষিত থাকবে</div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={signInWithGoogle}
+              disabled={isSyncing}
+              className="py-1.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs transition active:scale-95 flex items-center gap-1.5 shadow-xs shrink-0"
+            >
+              <span>{isSyncing ? 'অপেক্ষা করুন...' : 'লগইন'}</span>
+            </button>
+          </div>
+        )}
+
         {/* Quick Stats Banner */}
-        <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-stone-50 rounded-2xl border border-stone-200/60 text-center">
+        <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-stone-50 rounded-2xl border border-stone-200/60 text-center">
           <div>
-            <div className="text-[11px] text-stone-500 font-medium">সিলেবাস সম্পন্ন</div>
+            <div className="text-[11px] text-stone-500 font-medium">সিলেবাস</div>
             <div className="text-base font-black text-rose-800 font-sans mt-0.5">
               {toBengaliNumber(overallProgress.percentage)}%
             </div>
           </div>
           <div>
-            <div className="text-[11px] text-stone-500 font-medium">টার্গেট পরীক্ষা</div>
+            <div className="text-[11px] text-stone-500 font-medium">টার্গেট</div>
             <div className="text-base font-black text-slate-900 font-sans mt-0.5">
               {examTarget}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] text-stone-500 font-medium">মাইলস্টোন ব্যাজ</div>
+            <div className="text-base font-black text-amber-700 font-sans mt-0.5 flex items-center justify-center gap-0.5">
+              <span>{toBengaliNumber(unlockedBadgeCount)}/{toBengaliNumber(totalBadgeCount)}</span>
+              <span className="text-xs">🏆</span>
             </div>
           </div>
         </div>

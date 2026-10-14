@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, academic preferences, target, and study goals",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "examTarget": { "type": "string", "maxLength": 50 },
+        "group": { "type": "string", "maxLength": 50 },
+        "dailyTargetHours": { "type": "number" },
+        "preferredTime": { "type": "string", "maxLength": 50 },
+        "notificationsEnabled": { "type": "boolean" },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "StudySession": {
+      "title": "StudySession",
+      "description": "Completed study timer sessions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "subjectId": { "type": "string", "maxLength": 50 },
+        "durationSeconds": { "type": "number" },
+        "date": { "type": "string", "maxLength": 20 },
+        "timestamp": { "type": "number" },
+        "chapterTitle": { "type": "string", "maxLength": 150 }
+      },
+      "required": ["id", "userId", "subjectId", "durationSeconds", "date", "timestamp"]
+    },
+    "UserRoutine": {
+      "title": "UserRoutine",
+      "description": "Weekly study routine slots with alarms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "dayOfWeek": { "type": "string", "maxLength": 20 },
+        "startTime": { "type": "string", "maxLength": 30 },
+        "rawTime": { "type": "string", "maxLength": 10 },
+        "subjectId": { "type": "string", "maxLength": 50 },
+        "activityType": { "type": "string", "maxLength": 100 },
+        "durationMinutes": { "type": "number" },
+        "alarmEnabled": { "type": "boolean" },
+        "completed": { "type": "boolean" },
+        "note": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["id", "userId", "dayOfWeek", "startTime", "subjectId", "activityType", "durationMinutes"]
+    },
+    "UserTask": {
+      "title": "UserTask",
+      "description": "Daily study tasks and milestones",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "subjectId": { "type": "string", "maxLength": 50 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "subjectId", "completed"]
+    },
+    "ChapterProgress": {
+      "title": "ChapterProgress",
+      "description": "User progress per HSC syllabus chapter and milestones",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "chapterId": { "type": "string", "maxLength": 80 },
+        "completed": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "chapterId", "completed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User account profile document"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "StudySession",
+      "description": "User study timer sessions"
+    },
+    "/users/{userId}/routines/{routineId}": {
+      "schema": "UserRoutine",
+      "description": "User weekly routine study slots"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "UserTask",
+      "description": "User daily study tasks"
+    },
+    "/users/{userId}/chapterProgress/{progressId}": {
+      "schema": "ChapterProgress",
+      "description": "User syllabus chapter completion records"
+    }
+  }
+}

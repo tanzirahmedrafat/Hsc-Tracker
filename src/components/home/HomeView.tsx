@@ -4,6 +4,7 @@ import { DaySelector } from './DaySelector';
 import { OverallProgressCard } from './OverallProgressCard';
 import { StudyWizardCard } from './StudyWizardCard';
 import { StudyStreakCard } from './StudyStreakCard';
+import { AcademicBadgesCard } from './AcademicBadgesCard';
 import { DailyStudyTargetCard } from './DailyStudyTargetCard';
 import { WeeklyProgressCard } from './WeeklyProgressCard';
 import { SubjectCompletionDashboard } from './SubjectCompletionDashboard';
@@ -50,6 +51,9 @@ export const HomeView: React.FC = () => {
 
         {/* Study Streak Card */}
         <StudyStreakCard />
+
+        {/* Academic Milestones & Badges Card */}
+        <AcademicBadgesCard />
 
         {/* Daily Study Target Card with Progress Circle */}
         <DailyStudyTargetCard />

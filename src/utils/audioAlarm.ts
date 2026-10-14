@@ -121,3 +121,45 @@ export function stopRoutineAlarm() {
     navigator.vibrate(0);
   }
 }
+
+export function playBadgeUnlockFanfare() {
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+
+    // Victory Fanfare: Rapid ascending arpeggio C5, E5, G5, B5, C6 with triumphant sustain
+    const notes = [
+      { freq: 523.25, time: 0.0, dur: 0.2 },
+      { freq: 659.25, time: 0.12, dur: 0.2 },
+      { freq: 783.99, time: 0.24, dur: 0.25 },
+      { freq: 987.77, time: 0.36, dur: 0.3 },
+      { freq: 1046.5, time: 0.48, dur: 1.4 },
+    ];
+
+    notes.forEach(({ freq, time, dur }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.0001, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.4, now + time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur);
+    });
+
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([120, 60, 120, 60, 250]);
+    }
+  } catch (e) {
+    console.error('Badge fanfare error:', e);
+  }
+}

@@ -30,9 +30,15 @@ export const RoutineView: React.FC = () => {
     setActiveTab,
     toggleRoutineAlarm,
     testRoutineAlarm,
+    scheduleTestBackgroundAlarm,
+    requestNotificationPermission,
   } = useApp();
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(getTodayDayOfWeek);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
+  });
+  const [isTestingScheduled, setIsTestingScheduled] = useState(false);
 
   // Today's day name in Bengali
   const todayName = getTodayDayOfWeek();
@@ -62,19 +68,71 @@ export const RoutineView: React.FC = () => {
           title="অ্যালার্ম শব্দ পরীক্ষা করুন"
         >
           <Volume2 className="w-3.5 h-3.5 text-amber-700" />
-          <span>টেস্ট অ্যালার্ম</span>
+          <span>সাউন্ড টেস্ট</span>
         </button>
       </div>
 
-      {/* Routine Alarm Info Banner */}
-      <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-50 via-rose-50 to-orange-50 border border-amber-200/60 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-700 shrink-0">
-            <Bell className="w-4 h-4 fill-amber-500" />
+      {/* Routine System Background Alarm Banner */}
+      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-rose-50 to-orange-50 border border-amber-200/80 text-xs space-y-2.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-700 shrink-0 mt-0.5">
+              <Bell className="w-4 h-4 fill-amber-500" />
+            </div>
+            <div>
+              <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                <span>সিস্টেম ব্যাকগ্রাউন্ড অ্যালার্ম</span>
+                <span
+                  className={`text-[10px] px-2 py-0.2 rounded-full font-sans font-bold ${
+                    permissionGranted
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-rose-100 text-rose-800 border border-rose-300'
+                  }`}
+                >
+                  {permissionGranted ? 'সক্রিয়' : 'অনুমতি প্রয়োজন'}
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-tight mt-0.5">
+                অ্যাপ বন্ধ থাকলেও বা ফোন লক থাকলেও সার্ভিস ওয়ার্কারের মাধ্যমে অ্যালার্ম বাজবে।
+              </p>
+            </div>
           </div>
-          <span className="font-semibold text-slate-800 text-[11px] leading-tight">
-            রুটিনের নির্ধারিত সময় হলেই স্বয়ংক্রিয় অ্যালার্ম ও চিম রিংটোন বাজবে!
-          </span>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1 border-t border-amber-200/50">
+          {!permissionGranted ? (
+            <button
+              onClick={async () => {
+                const ok = await requestNotificationPermission();
+                setPermissionGranted(ok);
+              }}
+              className="flex-1 py-1.5 px-3 rounded-xl bg-slate-950 text-white font-bold text-xs hover:bg-slate-900 active:scale-95 transition shadow-2xs flex items-center justify-center gap-1.5"
+            >
+              <Bell className="w-3.5 h-3.5 text-amber-400" />
+              <span>নোটিফিকেশন পারমিশন অন করুন</span>
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                setIsTestingScheduled(true);
+                await scheduleTestBackgroundAlarm(5);
+                setTimeout(() => setIsTestingScheduled(false), 6000);
+              }}
+              disabled={isTestingScheduled}
+              className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition active:scale-95 shadow-2xs flex items-center justify-center gap-1.5 ${
+                isTestingScheduled
+                  ? 'bg-amber-600 text-white animate-pulse'
+                  : 'bg-emerald-800 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>
+                {isTestingScheduled
+                  ? '৫ সেকেন্ড কাউন্টডাউন... এখন অ্যাপ মিনিমাইজ করুন!'
+                  : '🧪 ৫ সেকেন্ড পর ব্যাকগ্রাউন্ড টেস্ট অ্যালার্ম'}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

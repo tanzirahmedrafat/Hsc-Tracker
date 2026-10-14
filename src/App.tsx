@@ -5,6 +5,7 @@
 
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { FirebaseAuthProvider } from './firebase/FirebaseAuthProvider';
 import { BottomNav } from './components/common/BottomNav';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { ProfileModal } from './components/profile/ProfileModal';
@@ -14,6 +15,7 @@ import { HomeView } from './components/home/HomeView';
 import { RoutineView } from './components/routine/RoutineView';
 import { TrackerView } from './components/tracker/TrackerView';
 import { AiBuddyView } from './components/aibuddy/AiBuddyView';
+import { BadgeUnlockModal } from './components/common/BadgeUnlockModal';
 
 const MainContent: React.FC = () => {
   const {
@@ -24,6 +26,8 @@ const MainContent: React.FC = () => {
     activeAlarmRoutine,
     dismissAlarm,
     timerStatus,
+    recentlyUnlockedBadge,
+    dismissUnlockedBadge,
   } = useApp();
 
   // Android Screen Wake Lock during study timer session
@@ -93,14 +97,22 @@ const MainContent: React.FC = () => {
 
       {/* Mobile Floating Companion Widget (Sad if no study, Happy when studying) */}
       <FloatingStudyWidget />
+
+      {/* Academic Milestone Badge Unlock Modal */}
+      <BadgeUnlockModal
+        badge={recentlyUnlockedBadge}
+        onClose={dismissUnlockedBadge}
+      />
     </main>
   );
 };
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
+    <FirebaseAuthProvider>
+      <AppProvider>
+        <MainContent />
+      </AppProvider>
+    </FirebaseAuthProvider>
   );
 }

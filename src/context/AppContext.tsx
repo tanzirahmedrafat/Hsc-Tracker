@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import {
   Subject,
   Chapter,
@@ -10,6 +10,7 @@ import {
   DayOfWeek,
   StreakInfo,
   DayStreakStatus,
+  AcademicBadge,
 } from '../types';
 import {
   DEFAULT_SUBJECTS,
@@ -24,8 +25,10 @@ import {
   triggerBackgroundAlarm,
   scheduleTestBackgroundAlarm,
   requestNotificationPermission,
+  syncAlarmsToServiceWorker,
 } from '../utils/backgroundAlarmManager';
 import { parseStartTime } from '../utils/bengali';
+import { computeBadges } from '../utils/badgeManager';
 
 export type NavTab = 'home' | 'routine' | 'tracker' | 'ai-buddy';
 
@@ -113,6 +116,13 @@ interface AppContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   setTheme: (theme: 'light' | 'dark') => void;
+
+  // Academic Milestones & Badges
+  academicBadges: AcademicBadge[];
+  unlockedBadgeCount: number;
+  totalBadgeCount: number;
+  recentlyUnlockedBadge: AcademicBadge | null;
+  dismissUnlockedBadge: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -126,6 +136,7 @@ const STORAGE_KEYS = {
   PROFILE: 'hsc_tracker_profile_v1',
   TIMER: 'hsc_tracker_timer_state_v1',
   THEME: 'hsc_tracker_theme',
+  BADGES: 'hsc_tracker_unlocked_badges_v1',
 };
 
 const createDefaultMilestones = (chapterId: string, isCompleted: boolean = false): ChapterMilestone[] => [
@@ -623,6 +634,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     checkAlarmTime();
+    syncAlarmsToServiceWorker(routines, subjects);
     const interval = setInterval(checkAlarmTime, 5000);
 
     // Dedicated Background Web Worker to keep checking when app is minimized
@@ -883,6 +895,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     weeklyStreakDays,
   };
 
+  // Academic Milestones & Badges
+  const [unlockedBadgesMap, setUnlockedBadgesMap] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.BADGES);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [recentlyUnlockedBadge, setRecentlyUnlockedBadge] = useState<AcademicBadge | null>(null);
+
+  // Compute academic milestone badges
+  const { badges: academicBadges, unlockedCount: unlockedBadgeCount, totalCount: totalBadgeCount } = useMemo(() => {
+    return computeBadges({
+      sessions: studySessions,
+      streak: streakInfo,
+      overallProgress: {
+        percentage: overallProgress.percentage,
+        completedChapters: overallProgress.completedChapters,
+      },
+      tasks,
+      routines,
+      savedUnlocked: unlockedBadgesMap,
+    });
+  }, [studySessions, streakInfo, overallProgress, tasks, routines, unlockedBadgesMap]);
+
+  // Track initially known unlocked badges so modal only shows on real-time unlock
+  const prevUnlockedIdsRef = useRef<Set<string>>(new Set(Object.keys(unlockedBadgesMap)));
+
+  useEffect(() => {
+    const updatedMap = { ...unlockedBadgesMap };
+    let hasChanges = false;
+    let newlyUnlockedBadgeFound: AcademicBadge | null = null;
+
+    academicBadges.forEach((b) => {
+      if (b.unlocked) {
+        if (!updatedMap[b.id]) {
+          updatedMap[b.id] = b.unlockedAt || new Date().toISOString();
+          hasChanges = true;
+        }
+        if (!prevUnlockedIdsRef.current.has(b.id)) {
+          prevUnlockedIdsRef.current.add(b.id);
+          if (!newlyUnlockedBadgeFound) {
+            newlyUnlockedBadgeFound = b;
+          }
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setUnlockedBadgesMap(updatedMap);
+      try {
+        localStorage.setItem(STORAGE_KEYS.BADGES, JSON.stringify(updatedMap));
+      } catch {}
+    }
+
+    if (newlyUnlockedBadgeFound) {
+      setRecentlyUnlockedBadge(newlyUnlockedBadgeFound);
+    }
+  }, [academicBadges, unlockedBadgesMap]);
+
+  const dismissUnlockedBadge = () => {
+    setRecentlyUnlockedBadge(null);
+  };
+
   // Profile actions
   const updateUserProfile = (profile: Partial<UserProfile>) => {
     setUserProfile((prev) => ({ ...prev, ...profile }));
@@ -894,6 +972,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRoutines(DEFAULT_ROUTINES);
     setStudySessions([]);
     setUserProfile(DEFAULT_USER_PROFILE);
+    setUnlockedBadgesMap({});
+    setRecentlyUnlockedBadge(null);
+    prevUnlockedIdsRef.current = new Set();
     resetTimer();
     localStorage.clear();
   };
@@ -952,6 +1033,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         theme,
         toggleTheme,
         setTheme,
+        academicBadges,
+        unlockedBadgeCount,
+        totalBadgeCount,
+        recentlyUnlockedBadge,
+        dismissUnlockedBadge,
       }}
     >
       {children}

@@ -96,3 +96,22 @@ export interface ChatMessage {
   timestamp: string;
   imageBase64?: string;
 }
+
+export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'diamond';
+export type BadgeCategory = 'consistency' | 'time' | 'mastery' | 'streak';
+
+export interface AcademicBadge {
+  id: string;
+  key: string;
+  title: string;
+  englishName: string;
+  category: BadgeCategory;
+  description: string;
+  icon: string;
+  tier: BadgeTier;
+  unlocked: boolean;
+  unlockedAt?: string;
+  currentProgress: number;
+  targetProgress: number;
+  requirementText: string;
+}

@@ -12,6 +12,7 @@ import {
   BookOpen,
   AlertTriangle,
   Sparkles,
+  Award,
 } from 'lucide-react';
 
 export const TrackerView: React.FC = () => {
@@ -23,6 +24,9 @@ export const TrackerView: React.FC = () => {
     selectedTrackerSubjectId,
     setSelectedTrackerSubjectId,
     subjectProgressMap,
+    setActiveTab,
+    unlockedBadgeCount,
+    totalBadgeCount,
   } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,14 +64,25 @@ export const TrackerView: React.FC = () => {
 
   return (
     <div className="pb-28 max-w-md mx-auto px-4 pt-5 space-y-4">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-          অধ্যায় ট্র্যাকার
-        </h1>
-        <p className="text-xs text-stone-500 font-medium mt-1">
-          বিষয় নির্বাচন করো, অধ্যায় চেক করো
-        </p>
+      {/* Page Title & Milestone Badge Pill */}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+            অধ্যায় ট্র্যাকার
+          </h1>
+          <p className="text-xs text-stone-500 font-medium mt-1">
+            বিষয় নির্বাচন করো, অধ্যায় চেক করো
+          </p>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('home')}
+          className="px-3 py-1.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:bg-amber-100 transition active:scale-95 shrink-0"
+          title="অ্যাকাডেমিক মাইলস্টোন ব্যাজ দেখুন"
+        >
+          <Award className="w-3.5 h-3.5 text-amber-600" />
+          <span>{toBengaliNumber(unlockedBadgeCount)}/{toBengaliNumber(totalBadgeCount)} ব্যাজ</span>
+        </button>
       </div>
 
       {/* Horizontal Subject Tabs */}

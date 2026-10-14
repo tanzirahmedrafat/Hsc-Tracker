@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Core Auth & Validation Helpers
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data, userId) {
+      return data.id == userId
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && (!('dailyTargetHours' in data) || data.dailyTargetHours is number);
+    }
+
+    // Validation for StudySession
+    function isValidStudySession(data, userId) {
+      return data.userId == userId
+        && data.subjectId is string && data.subjectId.size() <= 50
+        && data.durationSeconds is number && data.durationSeconds >= 0
+        && data.timestamp is number;
+    }
+
+    // Validation for UserRoutine
+    function isValidUserRoutine(data, userId) {
+      return data.userId == userId
+        && data.dayOfWeek is string && data.dayOfWeek.size() <= 20
+        && data.startTime is string && data.startTime.size() <= 30
+        && data.subjectId is string && data.subjectId.size() <= 50
+        && data.durationMinutes is number;
+    }
+
+    // Validation for UserTask
+    function isValidUserTask(data, userId) {
+      return data.userId == userId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.subjectId is string && data.subjectId.size() <= 50
+        && data.completed is bool;
+    }
+
+    // Validation for ChapterProgress
+    function isValidChapterProgress(data, userId) {
+      return data.userId == userId
+        && data.chapterId is string && data.chapterId.size() <= 80
+        && data.completed is bool;
+    }
+
+    // Connection testing document
+    match /test/connection {
+      allow read, write: if true;
+    }
+
+    // User Profile Document & Nested Resources
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow querying all users
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow delete: if isOwner(userId);
+
+      // Sessions Subcollection
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(sessionId) && isValidStudySession(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(sessionId) && isValidStudySession(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(sessionId);
+      }
+
+      // Routines Subcollection
+      match /routines/{routineId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(routineId) && isValidUserRoutine(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(routineId) && isValidUserRoutine(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(routineId);
+      }
+
+      // Tasks Subcollection
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(taskId) && isValidUserTask(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(taskId) && isValidUserTask(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(taskId);
+      }
+
+      // ChapterProgress Subcollection
+      match /chapterProgress/{progressId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(progressId) && isValidChapterProgress(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(progressId) && isValidChapterProgress(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(progressId);
+      }
+    }
+  }
+}

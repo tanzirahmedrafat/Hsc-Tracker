@@ -1,11 +1,13 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useFirebaseAuth } from '../../firebase/FirebaseAuthProvider';
 import { getTodayBengaliDate } from '../../utils/bengali';
 import { PWAInstallButton } from './PWAInstallButton';
 import { User, Sparkles, Moon, Sun } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { userProfile, setIsProfileOpen, theme, toggleTheme } = useApp();
+  const { currentUser } = useFirebaseAuth();
   const dateStr = getTodayBengaliDate();
 
   return (
@@ -44,10 +46,20 @@ export const Header: React.FC = () => {
           className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full bg-white border border-stone-200/90 shadow-2xs hover:border-stone-300 active:scale-95 transition"
           title="প্রোফাইল ও সেটিংস"
         >
-          <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[11px] font-bold">
-            {userProfile.name ? userProfile.name.charAt(0) : 'আ'}
-          </div>
-          <span className="text-xs font-semibold text-slate-800">আমি</span>
+          {currentUser?.photoURL ? (
+            <img
+              src={currentUser.photoURL}
+              alt={currentUser.displayName || ''}
+              className="w-6 h-6 rounded-full border border-blue-400/80"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[11px] font-bold">
+              {currentUser?.displayName ? currentUser.displayName.charAt(0) : (userProfile.name ? userProfile.name.charAt(0) : 'আ')}
+            </div>
+          )}
+          <span className="text-xs font-semibold text-slate-800">
+            {currentUser?.displayName ? currentUser.displayName.split(' ')[0] : 'আমি'}
+          </span>
         </button>
       </div>
     </header>

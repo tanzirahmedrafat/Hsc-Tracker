@@ -41,13 +41,13 @@ export async function triggerBackgroundAlarm(
 
       // Method B: Direct ServiceWorkerRegistration.showNotification (standard on mobile Android)
       if ('Notification' in window && Notification.permission === 'granted') {
-        await reg.showNotification(title, {
+        const swOptions: any = {
           body,
           icon: '/pwa-192x192.png',
           badge: '/pwa-192x192.png',
           tag: `hsc-alarm-${routine.id}`,
           renotify: true,
-          requireInteraction: true, // Crucial: Keeps notification persistent on phone lock screen
+          requireInteraction: true, // Keeps notification persistent on phone lock screen
           vibrate: [600, 250, 600, 250, 600, 250, 1000],
           data: {
             url: '/',
@@ -58,7 +58,8 @@ export async function triggerBackgroundAlarm(
             { action: 'start', title: 'পড়তে বসুন 📖' },
             { action: 'dismiss', title: 'বন্ধ করুন ✕' },
           ],
-        });
+        };
+        await reg.showNotification(title, swOptions);
         return;
       }
     } catch (swErr) {
@@ -137,4 +138,80 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 export function isNotificationPermissionGranted(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
+}
+
+// Synchronize all today's upcoming routine alarms to the Service Worker for background triggering
+export async function syncAlarmsToServiceWorker(
+  routines: RoutineItem[],
+  subjects: Array<{ id: string; name: string }>
+): Promise<void> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const nowTotalMinutes = currentHour * 60 + currentMinute;
+
+  const BENGALI_DAY_MAP: Record<number, string> = {
+    0: 'রবি',
+    1: 'সোম',
+    2: 'মঙ্গল',
+    3: 'বুধ',
+    4: 'বৃহঃ',
+    5: 'শুক্র',
+    6: 'শনি',
+  };
+  const todayDay = BENGALI_DAY_MAP[now.getDay()];
+
+  const alarmsToSchedule: Array<{
+    id: string;
+    delayMs: number;
+    title: string;
+    body: string;
+    subjectId: string;
+  }> = [];
+
+  for (const r of routines) {
+    if (r.alarmEnabled === false || r.completed) continue;
+    if (r.dayOfWeek !== todayDay && r.dayOfWeek !== 'প্রতিদিন') continue;
+
+    let targetHour: number | null = null;
+    let targetMinute: number | null = null;
+
+    if (r.rawTime) {
+      const [hStr, mStr] = r.rawTime.split(':');
+      targetHour = parseInt(hStr, 10);
+      targetMinute = parseInt(mStr, 10);
+    }
+
+    if (targetHour !== null && targetMinute !== null && !isNaN(targetHour) && !isNaN(targetMinute)) {
+      const targetTotalMinutes = targetHour * 60 + targetMinute;
+      const diffMinutes = targetTotalMinutes - nowTotalMinutes;
+
+      // Only schedule if it's in the future today
+      if (diffMinutes > 0) {
+        const delayMs = diffMinutes * 60 * 1000 - now.getSeconds() * 1000;
+        const matchedSub = subjects.find((s) => s.id === r.subjectId);
+        alarmsToSchedule.push({
+          id: r.id,
+          delayMs: Math.max(1000, delayMs),
+          title: `🔔 পড়ার সময় হয়েছে: ${matchedSub?.name || 'বিষয়'}`,
+          body: `${r.activityType} • ${r.startTime} (${r.durationMinutes} মিনিট)`,
+          subjectId: r.subjectId,
+        });
+      }
+    }
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (reg.active) {
+      reg.active.postMessage({
+        type: 'SCHEDULE_ALL_ALARMS',
+        alarms: alarmsToSchedule,
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to sync alarms to Service Worker:', e);
+  }
 }
